@@ -1,0 +1,37 @@
+version: '3.8'
+services:
+  cache:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    volumes:
+      - cache:/data
+  kafka:
+    image: 'bitnami/kafka:latest'
+    networks:
+      - app-tier
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+  product-server:
+    container_name: product-server
+    build:
+      context: docker-product-server
+      dockerfile: Dockerfile
+    image: product-server:latest
+    ports:
+      - "8080:8080"
+    networks:
+      - app-tier
+volumes:
+  cache:
+    driver: local
+networks:
+  app-tier:
+    driver: bridge
